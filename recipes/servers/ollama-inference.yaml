@@ -1,0 +1,71 @@
+# UBenchAI Server Recipe: Ollama Inference Server
+# This recipe deploys Ollama for lightweight LLM inference
+
+name: ollama-inference
+type: server
+description: "Ollama inference server for local LLM deployment"
+version: "1.0.0"
+
+# Container configuration
+container:
+  image: /project/home/p200301/containers/ollama-latest.sif
+  runtime: apptainer
+  binds:
+    - /project/home/p200301/ollama-models:/root/.ollama:rw
+    - /dev/shm:/dev/shm
+
+# Resource requirements for SLURM
+resources:
+  nodes: 1
+  gpus: 1
+  gpu_type: a100
+  cpus_per_task: 4
+  memory: 32G
+  time: "02:00:00"
+  partition: gpu
+
+# Network configuration
+network:
+  ports:
+    - name: api
+      port: 11434
+      protocol: http
+
+# Environment variables
+environment:
+  OLLAMA_HOST: "0.0.0.0:11434"
+  OLLAMA_MODELS: "/root/.ollama/models"
+  OLLAMA_NUM_PARALLEL: "4"
+
+# Command to run inside container
+command: |
+  ollama serve
+
+# Post-start commands (model pulling)
+post_start:
+  - ollama pull llama2:7b
+  - ollama pull mistral:7b
+
+# Health check configuration
+healthcheck:
+  enabled: true
+  endpoint: /api/tags
+  port: 11434
+  interval: 30
+  timeout: 10
+  retries: 3
+  initial_delay: 30
+
+# Metrics - requires external exporter
+metrics:
+  enabled: true
+  endpoint: /metrics
+  port: 8000  # Custom exporter port
+  type: prometheus
+  exporter: ollama-exporter
+
+# Labels for organization
+labels:
+  category: inference
+  engine: ollama
+  model_type: llm

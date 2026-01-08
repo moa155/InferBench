@@ -1,0 +1,83 @@
+# UBenchAI Client Recipe: LLM Stress Test
+# Benchmark client for testing LLM inference servers
+
+name: llm-stress-test
+type: client
+description: "Stress test for LLM inference endpoints"
+version: "1.0.0"
+
+# Resource requirements for client nodes
+resources:
+  nodes: 1
+  gpus: 0
+  cpus_per_task: 8
+  memory: 16G
+  time: "01:00:00"
+  partition: batch
+
+# Target service configuration
+target:
+  # Will be resolved at runtime from server endpoint file
+  endpoint_file: /tmp/ubenchai/server_endpoint.txt
+  # Or specify directly:
+  # url: http://localhost:8000
+  protocol: http
+  timeout: 120
+
+# Workload configuration
+workload:
+  type: open-loop  # open-loop or closed-loop
+  
+  # Request pattern
+  pattern:
+    type: constant  # constant, ramp, burst
+    rate: 10  # requests per second
+    duration: 300  # seconds
+  
+  # Request configuration
+  request:
+    endpoint: /v1/completions
+    method: POST
+    headers:
+      Content-Type: application/json
+    body_template: |
+      {
+        "model": "${MODEL_NAME}",
+        "prompt": "${PROMPT}",
+        "max_tokens": 100,
+        "temperature": 0.7
+      }
+  
+  # Prompt dataset
+  dataset:
+    type: synthetic  # synthetic, file, huggingface
+    prompts:
+      - "Explain quantum computing in simple terms."
+      - "Write a short poem about artificial intelligence."
+      - "What are the benefits of renewable energy?"
+      - "Describe the process of photosynthesis."
+      - "Summarize the history of the internet."
+
+# Environment variables
+environment:
+  MODEL_NAME: "meta-llama/Llama-2-7b-chat-hf"
+  CONCURRENT_REQUESTS: "10"
+
+# Output configuration
+output:
+  format: json
+  metrics:
+    - latency_p50
+    - latency_p95
+    - latency_p99
+    - throughput
+    - error_rate
+    - tokens_per_second
+  save_responses: false
+  output_dir: ./results
+
+# Labels
+labels:
+  category: benchmark
+  target: llm
+  type: stress-test
