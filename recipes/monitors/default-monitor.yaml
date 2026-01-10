@@ -1,0 +1,64 @@
+# UBenchAI Monitor Recipe: Default Monitoring Stack
+# Prometheus + Grafana monitoring configuration
+
+name: default-monitor
+type: monitor
+description: "Default monitoring stack with Prometheus and Grafana"
+version: "1.0.0"
+
+# Targets to monitor (resolved at runtime)
+targets: []
+
+# Prometheus configuration
+prometheus:
+  port: 9090
+  retention: 7d
+  scrape_interval: 15s
+  
+  # Static scrape configs
+  scrape_configs:
+    - job_name: node
+      static_configs:
+        - targets: ['localhost:9100']
+    
+    # Dynamic targets added at runtime
+    - job_name: ubenchai_services
+      file_sd_configs:
+        - files:
+            - /tmp/ubenchai/prometheus/targets/*.json
+
+# Grafana configuration
+grafana:
+  port: 3000
+  admin_user: admin
+  admin_password: admin
+  
+  # Data sources
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://localhost:9090
+      is_default: true
+  
+  # Dashboard provisioning
+  dashboards:
+    - name: System Overview
+      file: dashboards/system-overview.json
+    - name: LLM Metrics
+      file: dashboards/llm-metrics.json
+
+# Alert rules (optional)
+alerting:
+  enabled: false
+  rules: []
+
+# Scrape interval for all targets
+scrape_interval: 15
+
+# Data retention period
+retention: 7d
+
+# Labels
+labels:
+  category: monitoring
+  stack: prometheus-grafana
