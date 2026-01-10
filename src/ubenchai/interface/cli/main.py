@@ -1004,6 +1004,31 @@ def info(ctx: click.Context) -> None:
     ))
 
 
+# =============================================================================
+# Web Interface Commands
+# =============================================================================
+
+@cli.command("web")
+@click.option("--host", "-h", default="0.0.0.0", help="Host to bind to")
+@click.option("--port", "-p", default=5000, help="Port to listen on")
+@click.option("--debug", "-d", is_flag=True, help="Enable debug mode")
+@click.pass_context
+@handle_error
+def web_server(ctx: click.Context, host: str, port: int, debug: bool) -> None:
+    """Start the web dashboard server."""
+    from ubenchai.interface.web.app import create_app
+    
+    console.print(f"[green]Starting UBenchAI Web Dashboard[/green]")
+    console.print(f"[cyan]URL:[/cyan] http://{host}:{port}")
+    console.print(f"[cyan]Debug:[/cyan] {'Enabled' if debug else 'Disabled'}")
+    console.print()
+    console.print("[dim]Press Ctrl+C to stop the server[/dim]")
+    console.print()
+    
+    app = create_app()
+    app.run(host=host, port=port, debug=debug)
+
+
 def main() -> None:
     """Entry point for the CLI."""
     cli()
