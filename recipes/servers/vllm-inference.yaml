@@ -8,18 +8,17 @@ version: "1.0.0"
 
 # Container configuration
 container:
-  image: /project/home/p200301/containers/vllm-latest.sif
+  image: /project/home/p200776/containers/vllm-latest.sif
   runtime: apptainer
   # Additional bind mounts
   binds:
-    - /project/home/p200301/models:/models:ro
+    - /project/home/p200776/models:/models:ro
     - /dev/shm:/dev/shm
 
 # Resource requirements for SLURM
 resources:
   nodes: 1
   gpus: 1
-  gpu_type: a100
   cpus_per_task: 8
   memory: 64G
   time: "04:00:00"

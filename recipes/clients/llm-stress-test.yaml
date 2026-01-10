@@ -13,7 +13,7 @@ resources:
   cpus_per_task: 8
   memory: 16G
   time: "01:00:00"
-  partition: batch
+  partition: cpu
 
 # Target service configuration
 target:

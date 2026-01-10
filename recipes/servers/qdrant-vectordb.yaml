@@ -8,10 +8,10 @@ version: "1.0.0"
 
 # Container configuration
 container:
-  image: /project/home/p200301/containers/qdrant-latest.sif
+  image: /project/home/p200776/containers/qdrant-latest.sif
   runtime: apptainer
   binds:
-    - /project/home/p200301/qdrant-data:/qdrant/storage:rw
+    - /project/home/p200776/qdrant-data:/qdrant/storage:rw
 
 # Resource requirements for SLURM
 resources:
@@ -20,7 +20,7 @@ resources:
   cpus_per_task: 16
   memory: 64G
   time: "04:00:00"
-  partition: batch
+  partition: cpu
 
 # Network configuration
 network:

@@ -8,17 +8,16 @@ version: "1.0.0"
 
 # Container configuration
 container:
-  image: /project/home/p200301/containers/ollama-latest.sif
+  image: /project/home/p200776/containers/ollama-latest.sif
   runtime: apptainer
   binds:
-    - /project/home/p200301/ollama-models:/root/.ollama:rw
+    - /project/home/p200776/ollama-models:/root/.ollama:rw
     - /dev/shm:/dev/shm
 
 # Resource requirements for SLURM
 resources:
   nodes: 1
   gpus: 1
-  gpu_type: a100
   cpus_per_task: 4
   memory: 32G
   time: "02:00:00"

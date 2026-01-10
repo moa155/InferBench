@@ -152,15 +152,20 @@ class SlurmOrchestrator:
             f"#SBATCH --error={output_dir}/{job_name}_%j.err",
         ]
         
-        # Add GPU resources if needed
+        # Add GPU resources if needed (MeluXina uses --gres format)
         if resources.gpus > 0:
-            directives.append(f"#SBATCH --gpus={resources.gpus}")
             if resources.gpu_type:
-                directives.append(f"#SBATCH --gres=gpu:{resources.gpu_type}:{resources.gpus}")
+                directives.append(f"#SBATCH --gres=gpu:{resources.gpus}")
+            else:
+                directives.append(f"#SBATCH --gres=gpu:{resources.gpus}")
         
         # Add account if configured
         if self.config.slurm.account:
             directives.append(f"#SBATCH --account={self.config.slurm.account}")
+        
+        # Add QOS if configured
+        if hasattr(self.config.slurm, 'qos') and self.config.slurm.qos:
+            directives.append(f"#SBATCH --qos={self.config.slurm.qos}")
         
         # Build script
         script_lines = directives + [
@@ -170,9 +175,10 @@ class SlurmOrchestrator:
             'echo "Node: $SLURM_NODELIST"',
             'echo "Start time: $(date)"',
             "",
-            "# Load modules",
-            "module load Python/3.11.3-GCCcore-12.3.0",
-            "module load Apptainer/1.2.4-GCCcore-12.3.0",
+            "# Load modules (MeluXina 2024.1)",
+            "module load env/release/2024.1",
+            "module load Python/3.11.10-GCCcore-13.3.0",
+            "module load Apptainer",
             "",
             "# Set environment variables",
         ]
