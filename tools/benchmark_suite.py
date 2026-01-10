@@ -456,7 +456,7 @@ def main():
     parser.add_argument('--node', type=str, required=True, help='Compute node name (e.g., mel2044)')
     parser.add_argument('--output', type=str, default='results', help='Output directory')
     parser.add_argument('--models', type=str, nargs='+', 
-                        default=['tinyllama', 'phi', 'mistral', 'llama2', 'codellama'],
+                        default=['tinyllama', 'phi', 'mistral', 'llama2:13b', 'llama2:70b', 'codellama:70b', 'deepseek-coder:33b', 'qwen:72b'],
                         help='Models to benchmark')
     parser.add_argument('--skip-load-test', action='store_true', help='Skip load testing')
     parser.add_argument('--skip-visualizations', action='store_true', help='Skip creating visualizations')
