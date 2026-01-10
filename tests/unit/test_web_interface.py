@@ -36,7 +36,10 @@ class TestWebApp:
         data = response.get_json()
         assert data['status'] == 'healthy'
         assert 'timestamp' in data
-        assert data['version'] == '0.1.0'
+        from inferbench import __version__
+        # Single source of truth: the app must report the package version,
+        # so this test can never go stale on a version bump again.
+        assert data['version'] == __version__
     
     def test_index_page(self, client):
         """Should return index page."""

@@ -13,54 +13,29 @@
 }%%
 
 gantt
-    title InferBench Framework - Project Timeline
+    title InferBench Framework - Project Timeline (v2, July 2026)
     dateFormat  YYYY-MM-DD
-    
-    section Phase 1: Setup
-    Project Setup & Structure    :done, p1, 2025-11-01, 3d
-    Poetry Configuration         :done, p1b, after p1, 2d
-    Core Modules (Config/Logging):done, p1c, after p1b, 3d
-    
-    section Phase 2: Infrastructure
-    Pydantic Models              :done, p2, 2025-11-08, 2d
-    Recipe System                :done, p2b, after p2, 3d
-    SLURM Orchestrator           :done, p2c, after p2b, 4d
-    Apptainer Integration        :done, p2d, after p2c, 3d
-    
-    section Phase 3: Server Module
-    ServerManager Implementation :done, p3, 2025-11-20, 4d
-    Service Lifecycle Management :done, p3b, after p3, 3d
-    Health Checks                :done, p3c, after p3b, 2d
-    
-    section Phase 4: Client Module
-    ClientManager Implementation :done, p4, 2025-11-28, 4d
-    Benchmark Recipes            :done, p4b, after p4, 3d
-    Results Collection           :done, p4c, after p4b, 2d
-    
-    section Phase 5: Monitor Module
-    MonitorManager Implementation:done, p5, 2025-12-08, 3d
-    Prometheus Integration       :done, p5b, after p5, 3d
-    Grafana Dashboards           :done, p5c, after p5b, 3d
-    
-    section Phase 6: Logs Module
-    LogManager Implementation    :done, p6, 2025-12-17, 3d
-    Search & Export              :done, p6b, after p6, 2d
-    
-    section Phase 7: Interface
-    Flask Web Dashboard          :done, p7, 2025-12-22, 4d
-    REST API                     :done, p7b, after p7, 2d
-    Auto-refresh & Real-time     :done, p7c, after p7b, 2d
-    
-    section Phase 8: Testing
-    MeluXina Deployment          :done, p8, 2026-01-05, 3d
-    Ollama/vLLM Testing          :done, p8b, after p8, 3d
-    Performance Benchmarking     :active, p8c, after p8b, 4d
-    
-    section Phase 9: Documentation
-    Final Report Writing         :p9, 2026-01-15, 5d
-    Poster Creation              :p9b, after p9, 3d
-    Presentation Prep            :p9c, after p9b, 2d
-    
-    section Milestones
-    Framework Complete           :milestone, m1, 2026-01-10, 0d
-    Challenge Deadline           :milestone, m2, 2026-01-25, 0d
+
+    section Phase 1-8 Completed (Nov 2025 - Jan 2026)
+    Core Framework (recipes, SLURM, Apptainer)  :done, c1, 2025-11-01, 40d
+    Server-Client-Monitor-Logs Modules          :done, c2, 2025-11-20, 35d
+    Web Dashboard and REST API                  :done, c3, 2025-12-22, 10d
+    MeluXina Deployment and Initial Benchmarks  :done, c4, 2026-01-05, 8d
+
+    section Phase 9 Framework v1.1 Hardening
+    Static bench client (no codegen)            :done, h1, 2026-07-13, 1d
+    Statistics fixes (interpolated percentiles) :done, h2, 2026-07-13, 1d
+    Config portability (env-driven services)    :done, h3, 2026-07-13, 1d
+    Test suite green (138 tests)                :done, h4, 2026-07-13, 1d
+
+    section Phase 10 Measurement Campaign (dates TBD - needs cluster access)
+    Regain MeluXina access                      :crit, m1, 2026-07-20, 5d
+    Repetition study (n=10 per model)           :m2, after m1, 2d
+    Concurrency sweep (Ollama)                  :m3, after m2, 2d
+    vLLM deployment and comparative sweep       :m4, after m3, 3d
+    Replace projected results with measured     :m5, after m4, 2d
+
+    section Phase 11 Final Deliverables (dates TBD)
+    Final report update                         :d1, after m5, 4d
+    Poster and presentation refresh             :d2, after d1, 3d
+    Submission                                  :milestone, d3, after d2, 0d

@@ -5,6 +5,7 @@ Provides a Flask-based dashboard for monitoring and managing
 AI benchmarking services on MeluXina.
 """
 
+import os
 import json
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,7 @@ from typing import Optional
 from flask import Flask, render_template, jsonify, request, Response
 from flask_cors import CORS
 
+from inferbench import __version__
 from inferbench.core.config import get_config
 from inferbench.core.models import ServiceStatus, RunStatus
 from inferbench.servers.manager import get_server_manager
@@ -42,7 +44,8 @@ def create_app(config: Optional[dict] = None) -> Flask:
     
     # Default configuration
     app.config.update(
-        SECRET_KEY="inferbench-secret-key-change-in-production",
+        # Read from the environment; the fallback is only for local dev.
+        SECRET_KEY=os.environ.get("INFERBENCH_SECRET_KEY", "dev-only-insecure-key"),
         JSON_SORT_KEYS=False,
         JSONIFY_PRETTYPRINT_REGULAR=True,
     )
@@ -96,7 +99,7 @@ def register_routes(app: Flask) -> None:
         return jsonify({
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "version": "1.0.0",
+            "version": __version__,
         })
 
 

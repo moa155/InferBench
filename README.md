@@ -5,33 +5,33 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## 🎯 Project Overview
+## Project Overview
 
 InferBench-Framework is a modular benchmarking framework designed to evaluate the performance of AI Factory components on the **MeluXina supercomputer**. This project is part of the **EUMaster4HPC Student Challenge 2025-2026**.
 
 The framework provides tools for:
-- 🖥️ **Server Management**: Deploy and manage AI services (vLLM, Ollama, Vector DBs)
-- 📊 **Client Workloads**: Generate benchmark loads against services
-- 📈 **Monitoring**: Real-time metrics collection with Prometheus + Grafana
-- 📝 **Logging**: Centralized log collection and analysis
-- 🎛️ **Interface**: CLI and Web UI for orchestration
+- **Server Management**: Deploy and manage AI services (vLLM, Ollama, Vector DBs)
+- **Client Workloads**: Generate benchmark loads against services
+- **Monitoring**: Real-time metrics collection with Prometheus + Grafana
+- **Logging**: Centralized log collection and analysis
+- **Interface**: CLI and Web UI for orchestration
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Interface (CLI/Web)                      │
+│ Interface (CLI/Web) │
 ├─────────────┬─────────────┬─────────────┬──────────────────┤
-│   Servers   │   Clients   │  Monitors   │       Logs       │
+│ Servers │ Clients │ Monitors │ Logs │
 ├─────────────┴─────────────┴─────────────┴──────────────────┤
-│                    Core Infrastructure                       │
-│              (Recipes, Registry, Orchestrator)              │
+│ Core Infrastructure │
+│ (Recipes, Registry, Orchestrator) │
 ├─────────────────────────────────────────────────────────────┤
-│                  SLURM / Apptainer Runtime                   │
+│ SLURM / Apptainer Runtime │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -44,32 +44,32 @@ The framework provides tools for:
 ### Setup
 
 1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/moa155/InferBench-Framework.git
-   cd InferBench-Framework
-   ```
+ ```bash
+ git clone https://github.com/moa155/InferBench.git
+ cd InferBench
+ ```
 
 2. **Install dependencies**:
-   ```bash
-   poetry install
-   ```
+ ```bash
+ poetry install
+ ```
 
 3. **Activate the virtual environment**:
-   ```bash
-   # Poetry 2.0+ (recommended)
-   eval $(poetry env activate)
-   
-   # Or use poetry run for individual commands
-   poetry run inferbench --help
-   ```
+ ```bash
+ # Poetry 2.0+ (recommended)
+ eval $(poetry env activate)
+ 
+ # Or use poetry run for individual commands
+ poetry run inferbench --help
+ ```
 
 4. **Verify installation**:
-   ```bash
-   inferbench --version
-   inferbench --help
-   ```
+ ```bash
+ inferbench --version
+ inferbench --help
+ ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Start a Server
 ```bash
@@ -98,33 +98,30 @@ inferbench monitor start --recipe default-monitor --targets <job-id>
 inferbench logs show --service-id <service-id>
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-InferBench-Framework/
-├── src/inferbench/           # Main source code
-│   ├── servers/            # Server module
-│   ├── clients/            # Client module
-│   ├── monitors/           # Monitor module
-│   ├── logs/               # Logs module
-│   ├── interface/          # CLI and Web interface
-│   ├── core/               # Core infrastructure
-│   └── utils/              # Utility functions
-├── recipes/                # YAML recipe configurations
-│   ├── servers/            # Server recipes
-│   ├── clients/            # Client recipes
-│   ├── monitors/           # Monitor recipes
-│   └── benchmarks/         # Full benchmark recipes
-├── config/                 # Configuration files
-├── tests/                  # Test suite
-├── docs/                   # Documentation
-├── templates/              # Report and dashboard templates
-├── scripts/                # Utility scripts
-├── results/                # Benchmark results
-└── examples/               # Example configurations
+InferBench/
+├── src/inferbench/ # Main source code
+│ ├── servers/ # Server module
+│ ├── clients/ # Client module
+│ ├── monitors/ # Monitor module
+│ ├── logs/ # Logs module
+│ ├── interface/ # CLI and Web interface
+│ ├── core/ # Core infrastructure
+│ └── utils/ # Utility functions
+├── recipes/ # YAML recipe configurations
+│ ├── servers/ # Server recipes
+│ ├── clients/ # Client recipes
+│ ├── monitors/ # Monitor recipes
+│ └── benchmarks/ # Full benchmark recipes
+├── tests/ # Test suite
+├── docs/ # Documentation
+├── templates/ # Report and dashboard templates
+└── scripts/ # Utility scripts
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -155,20 +152,20 @@ name: vllm-inference
 type: server
 image: /path/to/vllm.sif
 resources:
-  nodes: 1
-  gpus: 1
-  memory: 32G
-  time: "02:00:00"
+ nodes: 1
+ gpus: 1
+ memory: 32G
+ time: "02:00:00"
 ports:
-  - 8000
+ - 8000
 environment:
-  MODEL_NAME: "meta-llama/Llama-2-7b-hf"
+ MODEL_NAME: "meta-llama/Llama-2-7b-hf"
 healthcheck:
-  endpoint: /health
-  interval: 30s
+ endpoint: /health
+ interval: 30s
 ```
 
-## 📊 Monitoring
+## Monitoring
 
 The framework integrates with Prometheus and Grafana for real-time monitoring:
 
@@ -176,7 +173,7 @@ The framework integrates with Prometheus and Grafana for real-time monitoring:
 - **Grafana**: Visualization dashboards
 - **Custom Exporters**: Service-specific metrics
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -189,7 +186,7 @@ poetry run pytest --cov=src/inferbench
 poetry run pytest tests/unit/test_servers.py
 ```
 
-## 📝 Development
+## Development
 
 ### Code Formatting
 ```bash
@@ -202,7 +199,7 @@ poetry run ruff check src/
 poetry run mypy src/
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -210,11 +207,11 @@ poetry run mypy src/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - EUMaster4HPC Program
 - LuxProvide and MeluXina Supercomputer
@@ -222,4 +219,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ---
 
-**Built with ❤️ for the EUMaster4HPC Student Challenge 2025-2026**
+**Built for the EUMaster4HPC Student Challenge 2025-2026**

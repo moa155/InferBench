@@ -1,0 +1,74 @@
+# InferBench Client Recipe: Concurrency Sweep
+#
+# Closed-loop saturation benchmark: for each concurrency level C the
+# client keeps exactly C requests in flight until N complete, recording
+# throughput (req/s, aggregate tok/s) and latency percentiles per level.
+# Plotting these against C yields the saturation curve — the core result
+# of an inference benchmark, which a single load point cannot provide.
+
+name: concurrency-sweep
+type: client
+description: "Closed-loop concurrency sweep against an LLM inference endpoint"
+version: "1.0.0"
+
+resources:
+  nodes: 1
+  gpus: 0
+  cpus_per_task: 8
+  memory: 16G
+  time: "01:00:00"
+  partition: cpu
+
+target:
+  endpoint_file: /tmp/inferbench/server_endpoint.txt
+  protocol: http
+  timeout: 120
+
+workload:
+  type: sweep
+
+  pattern:
+    # Doubling levels expose the saturation knee with few runs.
+    concurrency_levels: [1, 2, 4, 8, 16, 32, 64]
+    # >= 20 completions per level so p95 is estimated from data,
+    # not extrapolated from a handful of samples.
+    requests_per_level: 30
+    # Excluded from statistics: first requests pay model-load and
+    # cache-warm costs that would contaminate steady-state numbers.
+    warmup_requests: 3
+
+  request:
+    endpoint: /api/generate     # Ollama native API
+    api_format: ollama          # enables eval_count/eval_duration token metrics
+    method: POST
+    model: mistral
+    max_tokens: 100
+    temperature: 0.7
+
+  dataset:
+    type: synthetic
+    prompts:
+      - "Explain quantum computing in simple terms."
+      - "Write a short poem about artificial intelligence."
+      - "What are the benefits of renewable energy?"
+      - "Describe the process of photosynthesis."
+      - "Summarize the history of the internet."
+
+environment:
+  MODEL_NAME: "mistral"
+
+output:
+  format: json
+  metrics:
+    - throughput_rps
+    - aggregate_tokens_per_second
+    - latency_p50
+    - latency_p95
+    - latency_p99
+    - ttft
+    - error_rate
+
+labels:
+  category: benchmark
+  target: llm
+  type: sweep

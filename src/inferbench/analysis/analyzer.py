@@ -32,13 +32,38 @@ class BenchmarkAnalyzer:
         with open(path) as f:
             self.data = json.load(f)
     
+    @staticmethod
+    def percentile(values: list[float], p: float) -> float:
+        """
+        Percentile with linear interpolation between closest ranks
+        (numpy's default "linear" method).
+
+        Why this replaces the previous index-based lookup:
+        - sorted[int(n*0.95)] has an off-by-one bias and disagrees with
+          statistics.median for even n;
+        - the old code silently returned the MAXIMUM for p95 when n < 20
+          and for p99 when n < 100, overstating tail latency without
+          telling the caller. With interpolation the estimate is defined
+          for any n >= 1 (for tiny samples it is still a rough estimate,
+          but a documented, reproducible one).
+        """
+        if not values:
+            raise ValueError("percentile() of empty list")
+        s = sorted(values)
+        if len(s) == 1:
+            return float(s[0])
+        k = (len(s) - 1) * (p / 100.0)
+        lo = int(k)
+        hi = min(lo + 1, len(s) - 1)
+        frac = k - lo
+        return float(s[lo] * (1.0 - frac) + s[hi] * frac)
+
     def analyze_metric(self, values: list[float], metric_name: str) -> AnalysisResult:
         """Perform statistical analysis on a metric."""
         if not values:
             raise ValueError("No values to analyze")
         
-        sorted_vals = sorted(values)
-        n = len(sorted_vals)
+        n = len(values)
         
         return AnalysisResult(
             metric=metric_name,
@@ -48,9 +73,9 @@ class BenchmarkAnalyzer:
             std_dev=statistics.stdev(values) if n > 1 else 0,
             min_val=min(values),
             max_val=max(values),
-            p50=sorted_vals[int(n * 0.50)],
-            p95=sorted_vals[int(n * 0.95)] if n >= 20 else sorted_vals[-1],
-            p99=sorted_vals[int(n * 0.99)] if n >= 100 else sorted_vals[-1],
+            p50=self.percentile(values, 50),
+            p95=self.percentile(values, 95),
+            p99=self.percentile(values, 99),
         )
     
     def analyze_throughput(self, results: list[dict]) -> AnalysisResult:

@@ -6,6 +6,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pathlib
+
 from inferbench.clients.manager import ClientManager
 from inferbench.core.models import (
     ClientRun,
@@ -241,20 +243,48 @@ class TestClientManager:
         assert result["benchmark"] == "test"
         assert result["summary"]["total_requests"] == 100
     
-    def test_build_http_benchmark_script(self, manager, sample_client_recipe, tmp_path):
-        """Should generate valid benchmark script."""
+    def test_build_benchmark_config(self, manager, sample_client_recipe, tmp_path):
+        """Recipe fields must map into the bench_client JSON config."""
         results_dir = tmp_path / "results"
-        
-        script = manager._build_http_benchmark_script(
+
+        config = manager._build_benchmark_config(
             sample_client_recipe,
             "http://localhost:8000",
             results_dir,
         )
-        
-        assert "TARGET_ENDPOINT" in script
-        assert "REQUEST_RATE = 10" in script
-        assert "DURATION = 60" in script
-        assert "run_benchmark" in script
+
+        assert config["target_endpoint"] == "http://localhost:8000"
+        assert config["rate"] == 10
+        assert config["duration"] == 60
+        assert config["results_dir"] == str(results_dir)
+
+    def test_prepare_http_benchmark_writes_static_client(
+        self, manager, sample_client_recipe, tmp_path
+    ):
+        """No code generation: the client is copied verbatim, config is JSON."""
+        import json as _json
+
+        results_dir = tmp_path / "results"
+        work_dir = tmp_path / "work"
+        work_dir.mkdir()
+
+        command = manager._prepare_http_benchmark(
+            sample_client_recipe, "http://localhost:8000", results_dir, work_dir
+        )
+
+        script = work_dir / "bench_client.py"
+        config_file = work_dir / "client_config.json"
+        assert script.exists() and config_file.exists()
+        assert command == f"python3 {script} {config_file}"
+
+        # The copied client must be byte-identical to the packaged one
+        # (proves nothing was templated into it).
+        from inferbench.clients import manager as manager_module
+        source = pathlib.Path(manager_module.__file__).parent / "bench_client.py"
+        assert script.read_bytes() == source.read_bytes()
+
+        config = _json.loads(config_file.read_text())
+        assert config["target_endpoint"] == "http://localhost:8000"
 
 
 class TestClientManagerIntegration:

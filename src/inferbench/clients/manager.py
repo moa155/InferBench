@@ -144,13 +144,24 @@ class ClientManager:
         return None
     
     def _build_client_command(
-        self, 
+        self,
         recipe: ClientRecipe,
         target_endpoint: Optional[str],
         results_dir: Path,
+        work_dir: Path,
     ) -> str:
-        """Build the command to run the benchmark client."""
-        
+        """
+        Prepare the client working directory and return the shell command
+        to place in the SLURM batch script.
+
+        Three cases:
+        - container recipe: the Apptainer exec script is a *bash* script,
+          so it is written to disk and invoked with bash (previously it
+          was invoked with python3, which could never work);
+        - HTTP workload: the static bench_client.py is copied next to a
+          generated JSON config (no source-code templating);
+        - fallback: the recipe's raw command.
+        """
         # If recipe has a container, use it
         if recipe.container:
             container_cmd = self.runtime.generate_exec_script(
@@ -159,263 +170,85 @@ class ClientManager:
                 command=recipe.command or "echo 'No command specified'",
                 environment=recipe.environment,
             )
-            return container_cmd
-        
-        # Otherwise, build a Python-based benchmark script
+            script_file = work_dir / "container_exec.sh"
+            script_file.write_text(container_cmd)
+            script_file.chmod(0o755)
+            return f"bash {script_file}"
+
         workload = recipe.workload
         workload_type = workload.get("type", "simple")
-        
-        # Generate benchmark script based on workload type
-        if workload_type in ["open-loop", "closed-loop", "stress-test"]:
-            return self._build_http_benchmark_script(
-                recipe, target_endpoint, results_dir
+
+        if workload_type in ["open-loop", "closed-loop", "stress-test", "sweep"]:
+            return self._prepare_http_benchmark(
+                recipe, target_endpoint, results_dir, work_dir
             )
-        else:
-            # Default: just run the command if specified
-            return recipe.command or "echo 'No benchmark command specified'"
-    
-    def _build_http_benchmark_script(
+
+        # Default: just run the command if specified
+        return recipe.command or "echo 'No benchmark command specified'"
+
+    def _build_benchmark_config(
         self,
         recipe: ClientRecipe,
         target_endpoint: Optional[str],
         results_dir: Path,
-    ) -> str:
-        """Build an HTTP benchmark script."""
+    ) -> dict:
+        """
+        Translate a client recipe into the bench_client.py JSON config.
+
+        Kept separate from file I/O so tests can assert on the mapping
+        without touching the filesystem.
+        """
         workload = recipe.workload
-        
-        # Extract workload parameters
         pattern = workload.get("pattern", {})
-        rate = pattern.get("rate", 10)
-        duration = pattern.get("duration", 60)
-        
         request_config = workload.get("request", {})
-        endpoint_path = request_config.get("endpoint", "/v1/completions")
-        method = request_config.get("method", "POST")
-        
-        # Get prompts from dataset
         dataset = workload.get("dataset", {})
-        prompts = dataset.get("prompts", ["Hello, how are you?"])
-        
-        # Build the benchmark script
-        script = f'''#!/usr/bin/env python3
-"""
-InferBench Benchmark Client
-Generated for: {recipe.name}
-"""
 
-import json
-import time
-import random
-import statistics
-import os
-from datetime import datetime
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+        mode = "sweep" if workload.get("type") == "sweep" else "rate"
 
-try:
-    import httpx
-    HAS_HTTPX = True
-except ImportError:
-    import urllib.request
-    import urllib.error
-    HAS_HTTPX = False
+        config = {
+            "benchmark_name": recipe.name,
+            "target_endpoint": target_endpoint or "http://localhost:8000",
+            "endpoint_path": request_config.get("endpoint", "/api/generate"),
+            "method": request_config.get("method", "POST"),
+            "api_format": request_config.get("api_format", "ollama"),
+            "model": request_config.get("model"),
+            "max_tokens": request_config.get("max_tokens", 100),
+            "temperature": request_config.get("temperature", 0.7),
+            "prompts": dataset.get("prompts", ["Hello, how are you?"]),
+            "warmup_requests": pattern.get("warmup_requests", 2),
+            "mode": mode,
+            "rate": pattern.get("rate", 10),
+            "duration": pattern.get("duration", 60),
+            "concurrency_levels": pattern.get(
+                "concurrency_levels", [1, 2, 4, 8, 16, 32]
+            ),
+            "requests_per_level": pattern.get("requests_per_level", 20),
+            "results_dir": str(results_dir),
+        }
+        return config
 
-# Configuration
-TARGET_ENDPOINT = "{target_endpoint or 'http://localhost:8000'}"
-ENDPOINT_PATH = "{endpoint_path}"
-REQUEST_RATE = {rate}  # requests per second
-DURATION = {duration}  # seconds
-METHOD = "{method}"
-RESULTS_DIR = Path("{results_dir}")
+    def _prepare_http_benchmark(
+        self,
+        recipe: ClientRecipe,
+        target_endpoint: Optional[str],
+        results_dir: Path,
+        work_dir: Path,
+    ) -> str:
+        """
+        Copy the static benchmark client and write its JSON config into
+        the work directory; return the command that runs it.
+        """
+        import shutil
 
-PROMPTS = {json.dumps(prompts)}
+        source = Path(__file__).parent / "bench_client.py"
+        script_file = work_dir / "bench_client.py"
+        shutil.copyfile(source, script_file)
 
-def make_request_httpx(client, prompt):
-    """Make a request using httpx."""
-    url = TARGET_ENDPOINT + ENDPOINT_PATH
-    
-    body = {{
-        "model": os.environ.get("MODEL_NAME", "tinyllama"),
-        "prompt": prompt,
-        "max_tokens": 100,
-        "temperature": 0.7
-    }}
-    
-    start = time.perf_counter()
-    try:
-        if METHOD == "POST":
-            response = client.post(url, json=body, timeout=120)
-        else:
-            response = client.get(url, timeout=120)
-        
-        latency = time.perf_counter() - start
-        return {{
-            "success": response.status_code == 200,
-            "status_code": response.status_code,
-            "latency": latency,
-            "error": None
-        }}
-    except Exception as e:
-        latency = time.perf_counter() - start
-        return {{
-            "success": False,
-            "status_code": 0,
-            "latency": latency,
-            "error": str(e)
-        }}
+        config = self._build_benchmark_config(recipe, target_endpoint, results_dir)
+        config_file = work_dir / "client_config.json"
+        config_file.write_text(json.dumps(config, indent=2))
 
-def make_request_urllib(prompt):
-    """Make a request using urllib (fallback)."""
-    import urllib.request
-    import urllib.error
-    
-    url = TARGET_ENDPOINT + ENDPOINT_PATH
-    
-    body = json.dumps({{
-        "model": os.environ.get("MODEL_NAME", "tinyllama"),
-        "prompt": prompt,
-        "max_tokens": 100,
-        "temperature": 0.7
-    }}).encode()
-    
-    start = time.perf_counter()
-    try:
-        req = urllib.request.Request(
-            url, 
-            data=body if METHOD == "POST" else None,
-            headers={{"Content-Type": "application/json"}}
-        )
-        with urllib.request.urlopen(req, timeout=120) as response:
-            latency = time.perf_counter() - start
-            return {{
-                "success": response.status == 200,
-                "status_code": response.status,
-                "latency": latency,
-                "error": None
-            }}
-    except Exception as e:
-        latency = time.perf_counter() - start
-        return {{
-            "success": False,
-            "status_code": 0,
-            "latency": latency,
-            "error": str(e)
-        }}
-
-def run_benchmark():
-    """Run the benchmark."""
-    print("=" * 60)
-    print("InferBench Benchmark Client")
-    print("=" * 60)
-    print(f"Target: {{TARGET_ENDPOINT}}")
-    print(f"Endpoint: {{ENDPOINT_PATH}}")
-    print(f"Rate: {{REQUEST_RATE}} req/s")
-    print(f"Duration: {{DURATION}} seconds")
-    print("=" * 60)
-    
-    results = []
-    start_time = time.time()
-    request_interval = 1.0 / REQUEST_RATE
-    request_count = 0
-    
-    if HAS_HTTPX:
-        client = httpx.Client()
-        make_request = lambda p: make_request_httpx(client, p)
-    else:
-        client = None
-        make_request = make_request_urllib
-    
-    try:
-        while time.time() - start_time < DURATION:
-            prompt = random.choice(PROMPTS)
-            result = make_request(prompt)
-            results.append(result)
-            request_count += 1
-            
-            if request_count % 10 == 0:
-                elapsed = time.time() - start_time
-                actual_rate = request_count / elapsed
-                print(f"Progress: {{request_count}} requests, {{elapsed:.1f}}s elapsed, {{actual_rate:.1f}} req/s")
-            
-            # Sleep to maintain rate
-            time.sleep(request_interval)
-    
-    finally:
-        if client:
-            client.close()
-    
-    # Calculate statistics
-    latencies = [r["latency"] for r in results]
-    successes = [r for r in results if r["success"]]
-    failures = [r for r in results if not r["success"]]
-    
-    total_time = time.time() - start_time
-    
-    stats = {{
-        "benchmark": "{recipe.name}",
-        "timestamp": datetime.now().isoformat(),
-        "target": TARGET_ENDPOINT,
-        "config": {{
-            "rate": REQUEST_RATE,
-            "duration": DURATION,
-        }},
-        "summary": {{
-            "total_requests": len(results),
-            "successful_requests": len(successes),
-            "failed_requests": len(failures),
-            "success_rate": len(successes) / len(results) * 100 if results else 0,
-            "total_time_seconds": total_time,
-            "actual_throughput": len(results) / total_time if total_time > 0 else 0,
-        }},
-        "latency": {{
-            "min": min(latencies) if latencies else 0,
-            "max": max(latencies) if latencies else 0,
-            "mean": statistics.mean(latencies) if latencies else 0,
-            "median": statistics.median(latencies) if latencies else 0,
-            "p95": sorted(latencies)[int(len(latencies) * 0.95)] if len(latencies) > 20 else max(latencies) if latencies else 0,
-            "p99": sorted(latencies)[int(len(latencies) * 0.99)] if len(latencies) > 100 else max(latencies) if latencies else 0,
-        }},
-        "errors": [r["error"] for r in failures[:10]]  # First 10 errors
-    }}
-    
-    # Print summary
-    print()
-    print("=" * 60)
-    print("BENCHMARK RESULTS")
-    print("=" * 60)
-    print(f"Total Requests: {{stats['summary']['total_requests']}}")
-    print(f"Successful: {{stats['summary']['successful_requests']}}")
-    print(f"Failed: {{stats['summary']['failed_requests']}}")
-    print(f"Success Rate: {{stats['summary']['success_rate']:.2f}}%")
-    print(f"Throughput: {{stats['summary']['actual_throughput']:.2f}} req/s")
-    print()
-    print("Latency (seconds):")
-    print(f"  Min: {{stats['latency']['min']:.4f}}")
-    print(f"  Max: {{stats['latency']['max']:.4f}}")
-    print(f"  Mean: {{stats['latency']['mean']:.4f}}")
-    print(f"  Median: {{stats['latency']['median']:.4f}}")
-    print(f"  P95: {{stats['latency']['p95']:.4f}}")
-    print(f"  P99: {{stats['latency']['p99']:.4f}}")
-    print("=" * 60)
-    
-    # Save results
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    results_file = RESULTS_DIR / "benchmark_results.json"
-    with open(results_file, "w") as f:
-        json.dump(stats, f, indent=2)
-    print(f"Results saved to: {{results_file}}")
-    
-    # Also save raw results
-    raw_file = RESULTS_DIR / "raw_results.json"
-    with open(raw_file, "w") as f:
-        json.dump(results, f, indent=2)
-    
-    return stats
-
-if __name__ == "__main__":
-    run_benchmark()
-'''
-        return script
+        return f"python3 {script_file} {config_file}"
     
     def run_client(
         self,
@@ -476,16 +309,19 @@ if __name__ == "__main__":
             target_endpoint = self._resolve_target_endpoint(recipe, target_service_id)
             
             # Build client command
-            client_command = self._build_client_command(recipe, target_endpoint, results_dir)
-            
-            # Save benchmark script for debugging
-            script_file = work_dir / "benchmark_script.py"
-            script_file.write_text(client_command)
+            # Prepares work_dir (client script + JSON config, or container
+            # exec script) and returns the shell command to run it. The
+            # previous implementation wrote whatever came back — including
+            # bash container scripts — into a .py file and ran it with
+            # python3, which broke the container path.
+            client_command = self._build_client_command(
+                recipe, target_endpoint, results_dir, work_dir
+            )
             
             # Generate batch script
             batch_script = self.orchestrator.generate_batch_script(
                 job_name=f"inferbench-client-{recipe_name}-{run.id}",
-                command=f"python3 {script_file}",
+                command=client_command,
                 resources=recipe.resources,
                 environment=recipe.environment,
                 output_dir=work_dir,

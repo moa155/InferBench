@@ -7,11 +7,14 @@ Exposes Ollama server metrics in Prometheus format
 import http.server
 import json
 import time
+import os
 import urllib.request
 from urllib.error import URLError
 
-OLLAMA_URL = "http://mel2004:11434"
-EXPORTER_PORT = 8000
+# Configurable via environment so the exporter works on any node/allocation
+# instead of being tied to a specific MeluXina hostname.
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+EXPORTER_PORT = int(os.environ.get("EXPORTER_PORT", "8000"))
 
 class MetricsHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
