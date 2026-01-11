@@ -172,20 +172,8 @@ scrape_configs:
       - targets: ['localhost:9100']
 """
         
-        # Add any custom scrape configs from recipe
-        prometheus_config = recipe.prometheus
-        if prometheus_config.get("scrape_configs"):
-            for scrape_config in prometheus_config["scrape_configs"]:
-                job_name = scrape_config.get("job_name", "custom")
-                static_configs = scrape_config.get("static_configs", [])
-                
-                config += f"""
-  - job_name: '{job_name}'
-    static_configs:
-"""
-                for sc in static_configs:
-                    targets_str = ", ".join(f"'{t}'" for t in sc.get("targets", []))
-                    config += f"      - targets: [{targets_str}]\n"
+        # Skip adding custom scrape configs from recipe to avoid duplicates
+        # The base config already includes prometheus, ubenchai_services, and node jobs
         
         return config
     
@@ -369,7 +357,7 @@ prometheus \\
     --config.file={config_file} \\
     --storage.tsdb.path={work_dir}/data \\
     --storage.tsdb.retention.time={retention} \\
-    --web.listen-address=:${port} \\
+    --web.listen-address=:{port} \\
     --web.enable-lifecycle &
 
 PROMETHEUS_PID=$!
@@ -499,7 +487,7 @@ wait $GRAFANA_PID
         try:
             recipe = self.recipe_loader.load_monitor(recipe_name)
         except Exception as e:
-            raise MonitorStartError(recipe_name, f"Failed to load recipe: {e}")
+            raise MonitorStartError(f"Failed to load recipe {recipe_name}: {e}")
         
         # Create monitor instance
         monitor = MonitorInstance(
@@ -531,7 +519,7 @@ wait $GRAFANA_PID
             from ubenchai.core.models import ResourceSpec
             prometheus_resources = ResourceSpec(
                 nodes=1, gpus=0, cpus_per_task=2,
-                memory="4G", time="04:00:00", partition="batch"
+                memory="4G", time="04:00:00", partition="cpu"
             )
             
             prometheus_batch = self.orchestrator.generate_batch_script(
@@ -572,7 +560,7 @@ wait $GRAFANA_PID
             
         except Exception as e:
             monitor.status = ServiceStatus.ERROR
-            raise MonitorStartError(recipe_name, str(e))
+            raise MonitorStartError(f"Failed to start {recipe_name}: {e}")
     
     def stop_monitor(self, monitor_id: str) -> bool:
         """
