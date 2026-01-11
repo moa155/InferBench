@@ -60,7 +60,7 @@ workload:
 
 # Environment variables
 environment:
-  MODEL_NAME: "meta-llama/Llama-2-7b-chat-hf"
+  MODEL_NAME: "tinyllama"
   CONCURRENT_REQUESTS: "10"
 
 # Output configuration

@@ -106,6 +106,11 @@ class ClientManager:
         Returns:
             Target endpoint URL or None
         """
+        # If target looks like a URL, use it directly
+        if target_service_id and target_service_id.startswith(("http://", "https://")):
+            logger.info(f"Using direct target URL: {target_service_id}")
+            return target_service_id
+
         # If specific service ID provided, look it up
         if target_service_id:
             try:
@@ -202,6 +207,7 @@ import json
 import time
 import random
 import statistics
+import os
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -229,7 +235,7 @@ def make_request_httpx(client, prompt):
     url = TARGET_ENDPOINT + ENDPOINT_PATH
     
     body = {{
-        "model": "default",
+        "model": os.environ.get("MODEL_NAME", "tinyllama"),
         "prompt": prompt,
         "max_tokens": 100,
         "temperature": 0.7
@@ -266,7 +272,7 @@ def make_request_urllib(prompt):
     url = TARGET_ENDPOINT + ENDPOINT_PATH
     
     body = json.dumps({{
-        "model": "default",
+        "model": os.environ.get("MODEL_NAME", "tinyllama"),
         "prompt": prompt,
         "max_tokens": 100,
         "temperature": 0.7
