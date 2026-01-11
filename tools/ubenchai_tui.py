@@ -223,7 +223,7 @@ class UBenchAITUI:
                 
                 print(f"{Colors.DIM}Thinking...{Colors.END}", end='\r')
                 
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=180) as resp:
                     result = json.loads(resp.read())
                 
                 response = result.get('response', '').strip()
@@ -269,7 +269,7 @@ class UBenchAITUI:
         print_header()
         print(f"\n{Colors.BOLD}📈 MODEL COMPARISON{Colors.END}\n")
         
-        models = ['tinyllama', 'phi', 'mistral', 'llama2', 'codellama']
+        models = self.models[:8] if self.models else ['tinyllama']  # Use actual models from server
         prompt = "Explain AI briefly."
         
         print(f"Testing: {', '.join(models)}\n")
@@ -283,7 +283,7 @@ class UBenchAITUI:
                 data = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode()
                 req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
                 
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=180) as resp:
                     result = json.loads(resp.read())
                 
                 tps = result.get('eval_count', 0) / (result.get('eval_duration', 1) / 1e9)

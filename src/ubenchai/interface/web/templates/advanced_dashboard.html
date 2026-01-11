@@ -634,7 +634,7 @@
 
         // Run Model Comparison
         async function runModelComparison() {
-            const models = ['tinyllama', 'phi', 'mistral', 'llama2', 'codellama'];
+            const models = ['tinyllama', 'phi', 'mistral', 'llama2:13b', 'llama2:70b', 'codellama:70b', 'deepseek-coder:33b', 'qwen:72b'];
             showToast('Running model comparison...', 'info');
 
             for (const model of models) {
