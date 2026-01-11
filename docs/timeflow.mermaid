@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2ecc71', 'primaryTextColor': '#fff', 'primaryBorderColor': '#27ae60', 'lineColor': '#3498db', 'secondaryColor': '#9b59b6', 'tertiaryColor': '#e74c3c'}}}%%
+
+gantt
+    title UBenchAI Framework - Project Timeline
+    dateFormat  YYYY-MM-DD
+    
+    section Phase 1: Setup
+    Project Setup & Structure    :done, p1, 2025-11-01, 3d
+    Poetry Configuration         :done, p1b, after p1, 2d
+    Core Modules (Config/Logging):done, p1c, after p1b, 3d
+    
+    section Phase 2: Infrastructure
+    Pydantic Models              :done, p2, 2025-11-08, 2d
+    Recipe System                :done, p2b, after p2, 3d
+    SLURM Orchestrator           :done, p2c, after p2b, 4d
+    Apptainer Integration        :done, p2d, after p2c, 3d
+    
+    section Phase 3: Server Module
+    ServerManager Implementation :done, p3, 2025-11-20, 4d
+    Service Lifecycle Management :done, p3b, after p3, 3d
+    Health Checks                :done, p3c, after p3b, 2d
+    
+    section Phase 4: Client Module
+    ClientManager Implementation :done, p4, 2025-11-28, 4d
+    Benchmark Recipes            :done, p4b, after p4, 3d
+    Results Collection           :done, p4c, after p4b, 2d
+    
+    section Phase 5: Monitor Module
+    MonitorManager Implementation:done, p5, 2025-12-08, 3d
+    Prometheus Integration       :done, p5b, after p5, 3d
+    Grafana Dashboards           :done, p5c, after p5b, 3d
+    
+    section Phase 6: Logs Module
+    LogManager Implementation    :done, p6, 2025-12-17, 3d
+    Search & Export              :done, p6b, after p6, 2d
+    
+    section Phase 7: Interface
+    Flask Web Dashboard          :done, p7, 2025-12-22, 4d
+    REST API                     :done, p7b, after p7, 2d
+    Auto-refresh & Real-time     :done, p7c, after p7b, 2d
+    
+    section Phase 8: Testing
+    MeluXina Deployment          :done, p8, 2026-01-05, 3d
+    Ollama/vLLM Testing          :done, p8b, after p8, 3d
+    Performance Benchmarking     :active, p8c, after p8b, 4d
+    
+    section Phase 9: Documentation
+    Final Report Writing         :p9, 2026-01-15, 5d
+    Poster Creation              :p9b, after p9, 3d
+    Presentation Prep            :p9c, after p9b, 2d
+    
+    section Milestones
+    Framework Complete           :milestone, m1, 2026-01-10, 0d
+    Challenge Deadline           :milestone, m2, 2026-01-25, 0d
